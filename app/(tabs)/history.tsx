@@ -1,0 +1,102 @@
+import React from 'react';
+import { View, Text, FlatList, ActivityIndicator, RefreshControl } from 'react-native';
+import { CheckCircle2, RotateCcw, MapPin } from 'lucide-react-native';
+import { useQuery } from '@tanstack/react-query';
+import api from '../../services/api';
+
+export default function HistoryScreen() {
+  const { data: history, isLoading, refetch } = useQuery({
+    queryKey: ['historyOrders'],
+    queryFn: async () => {
+      const response = await api.get('/delivery/history');
+      return response.data;
+    },
+  });
+
+  const stats = React.useMemo(() => {
+    if (!history) return { delivered: 0, returned: 0 };
+    return {
+      delivered: history.filter((o: any) => o.estado === 'entregado').length,
+      returned: history.filter((o: any) => o.estado === 'preparado').length,
+    };
+  }, [history]);
+
+  const renderItem = ({ item }: { item: any }) => (
+    <View className="bg-white mx-4 mb-4 p-5 rounded-[32px] shadow-sm border border-surface-100">
+      <View className="flex-row justify-between items-center mb-4">
+        <View className="flex-row items-center gap-2">
+          <View className={item.estado === 'entregado' ? 'bg-green-100 p-2 rounded-xl' : 'bg-gray-100 p-2 rounded-xl'}>
+            {item.estado === 'entregado' ? (
+              <CheckCircle2 color="#16a34a" size={20} />
+            ) : (
+              <RotateCcw color="#4b5563" size={20} />
+            )}
+          </View>
+          <Text className="text-gray-900 font-bold text-sm">Pedido #{item.id}</Text>
+        </View>
+        <Text className="text-gray-400 text-xs font-medium">
+          {new Date(item.updated_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+        </Text>
+      </View>
+
+      <View className="flex-row items-center gap-2 mb-2">
+        <MapPin color="#9e4412" size={14} />
+        <Text className="text-gray-600 text-sm flex-1" numberOfLines={1}>
+          {item.direccion_entrega}
+        </Text>
+      </View>
+
+      <View className="flex-row justify-between items-end mt-2">
+        <Text className="text-gray-400 text-xs italic">
+          {item.estado === 'entregado' ? 'Entregado con éxito' : 'Devuelto al depósito'}
+        </Text>
+        <Text className="text-gray-900 font-bold text-lg">
+          ${item.total}
+        </Text>
+      </View>
+    </View>
+  );
+
+  if (isLoading) {
+    return (
+      <View className="flex-1 justify-center items-center bg-surface-50">
+        <ActivityIndicator size="large" color="#d97519" />
+      </View>
+    );
+  }
+
+  return (
+    <View className="flex-1 bg-surface-50">
+      <View className="flex-row gap-3 p-4">
+        <View className="flex-1 bg-white p-4 rounded-3xl border border-surface-100 items-center">
+          <Text className="text-gray-400 text-xs font-bold uppercase mb-1">Entregados</Text>
+          <Text className="text-green-600 text-2xl font-bold">{stats.delivered}</Text>
+        </View>
+        <View className="flex-1 bg-white p-4 rounded-3xl border border-surface-100 items-center">
+          <Text className="text-gray-400 text-xs font-bold uppercase mb-1">Devueltos</Text>
+          <Text className="text-gray-600 text-2xl font-bold">{stats.returned}</Text>
+        </View>
+      </View>
+
+      <FlatList
+        data={history}
+        renderItem={renderItem}
+        keyExtractor={item => item.id.toString()}
+        contentContainerStyle={{ paddingBottom: 40 }}
+        refreshControl={
+          <RefreshControl refreshing={isLoading} onRefresh={refetch} tintColor="#d97519" />
+        }
+        ListHeaderComponent={
+          <View className="px-5 py-2">
+            <Text className="text-gray-400 font-bold text-xs uppercase tracking-widest">Actividad de Hoy</Text>
+          </View>
+        }
+        ListEmptyComponent={
+          <View className="flex-1 items-center justify-center pt-10">
+            <Text className="text-gray-400 font-medium">Aún no tienes actividad registrada.</Text>
+          </View>
+        }
+      />
+    </View>
+  );
+}
