@@ -6,9 +6,9 @@ import { Platform } from 'react-native';
 // Si usas el emulador de iOS: http://localhost:8000
 // Si usas un celular físico: USA TU IP LOCAL (ej: http://192.168.1.50:8000)
 const BASE_URL = Platform.select({
-  android: 'http://192.168.0.203:8000',
-  ios: 'http://localhost:8000',
-  default: 'http://localhost:8000',
+  android: 'http://192.168.0.190:8000',
+  ios: 'http://192.168.0.190:8000',
+  default: 'http://192.168.0.190:8000',
 });
 
 const api = axios.create({
