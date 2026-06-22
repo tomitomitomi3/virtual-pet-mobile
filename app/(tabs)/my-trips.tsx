@@ -7,7 +7,7 @@ import api from '../../services/api';
 export default function MyTrips() {
   const queryClient = useQueryClient();
 
-  const { data: myOrders, isLoading, refetch } = useQuery({
+  const { data: myOrders, isLoading, isError, refetch } = useQuery({
     queryKey: ['myOrders'],
     queryFn: async () => {
       const response = await api.get('/delivery/my-orders');
@@ -70,7 +70,7 @@ export default function MyTrips() {
       </View>
 
       <Text className="text-gray-500 text-sm mb-6 ml-6">
-        Total a cobrar: ${item.total}
+        Total: ${item.total}
       </Text>
 
       <View className="flex-row gap-3">
@@ -99,6 +99,24 @@ export default function MyTrips() {
     return (
       <View className="flex-1 justify-center items-center bg-surface-50">
         <ActivityIndicator size="large" color="#d97519" />
+      </View>
+    );
+  }
+
+  if (isError) {
+    return (
+      <View className="flex-1 justify-center items-center bg-surface-50 p-8">
+        <Truck color="#ef4444" size={60} />
+        <Text className="text-red-500 font-bold text-lg mt-4 text-center">Error de Conexión</Text>
+        <Text className="text-gray-500 text-center mt-2 mb-6">
+          No se pudo conectar con el servidor. Verifica que el backend esté encendido y que el dispositivo esté en la misma red local.
+        </Text>
+        <TouchableOpacity 
+          onPress={() => refetch()}
+          className="bg-brand-500 px-6 py-3 rounded-2xl"
+        >
+          <Text className="text-white font-bold text-base">Reintentar</Text>
+        </TouchableOpacity>
       </View>
     );
   }

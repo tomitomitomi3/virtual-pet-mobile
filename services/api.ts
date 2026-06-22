@@ -1,15 +1,24 @@
 import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
+import Constants from 'expo-constants';
 
-// Si usas el emulador de Android: http://10.0.2.2:8000
-// Si usas el emulador de iOS: http://localhost:8000
-// Si usas un celular físico: USA TU IP LOCAL (ej: http://192.168.1.50:8000)
-const BASE_URL = Platform.select({
-  android: 'http://192.168.0.190:8000',
-  ios: 'http://192.168.0.190:8000',
-  default: 'http://192.168.0.190:8000',
-});
+const getBaseUrl = () => {
+  if (Platform.OS === 'web') {
+    return 'http://localhost:8000';
+  }
+
+  const hostUri = Constants.expoConfig?.hostUri;
+  if (hostUri) {
+    const ip = hostUri.split(':')[0];
+    return `http://${ip}:8000`;
+  }
+
+  // Fallback default IP if hostUri is unavailable
+  return 'http://192.168.0.190:8000';
+};
+
+const BASE_URL = getBaseUrl();
 
 const api = axios.create({
   baseURL: BASE_URL,

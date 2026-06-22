@@ -1,11 +1,11 @@
 import React from 'react';
-import { View, Text, FlatList, ActivityIndicator, RefreshControl } from 'react-native';
+import { View, Text, FlatList, ActivityIndicator, RefreshControl, TouchableOpacity } from 'react-native';
 import { CheckCircle2, RotateCcw, MapPin } from 'lucide-react-native';
 import { useQuery } from '@tanstack/react-query';
 import api from '../../services/api';
 
 export default function HistoryScreen() {
-  const { data: history, isLoading, refetch } = useQuery({
+  const { data: history, isLoading, isError, refetch } = useQuery({
     queryKey: ['historyOrders'],
     queryFn: async () => {
       const response = await api.get('/delivery/history');
@@ -61,6 +61,24 @@ export default function HistoryScreen() {
     return (
       <View className="flex-1 justify-center items-center bg-surface-50">
         <ActivityIndicator size="large" color="#d97519" />
+      </View>
+    );
+  }
+
+  if (isError) {
+    return (
+      <View className="flex-1 justify-center items-center bg-surface-50 p-8">
+        <CheckCircle2 color="#ef4444" size={60} />
+        <Text className="text-red-500 font-bold text-lg mt-4 text-center">Error de Conexión</Text>
+        <Text className="text-gray-500 text-center mt-2 mb-6">
+          No se pudo conectar con el servidor. Verifica que el backend esté encendido y que el dispositivo esté en la misma red local.
+        </Text>
+        <TouchableOpacity 
+          onPress={() => refetch()}
+          className="bg-brand-500 px-6 py-3 rounded-2xl"
+        >
+          <Text className="text-white font-bold text-base">Reintentar</Text>
+        </TouchableOpacity>
       </View>
     );
   }
