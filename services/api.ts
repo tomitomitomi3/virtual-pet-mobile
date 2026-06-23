@@ -18,7 +18,7 @@ const getBaseUrl = () => {
   return 'http://192.168.0.190:8000';
 };
 
-const BASE_URL = getBaseUrl();
+export const BASE_URL = getBaseUrl();
 
 const api = axios.create({
   baseURL: BASE_URL,

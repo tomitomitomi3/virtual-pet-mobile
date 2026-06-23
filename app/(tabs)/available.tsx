@@ -1,11 +1,43 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { View, Text, FlatList, TouchableOpacity, ActivityIndicator, Alert, RefreshControl } from 'react-native';
 import { Package, MapPin, ChevronRight } from 'lucide-react-native';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import api from '../../services/api';
+import api, { BASE_URL } from '../../services/api';
 
 export default function AvailableOrders() {
   const queryClient = useQueryClient();
+
+  useEffect(() => {
+    const wsProtocol = BASE_URL.startsWith('https') ? 'wss' : 'ws';
+    const wsUrl = `${wsProtocol}://${BASE_URL.replace(/^https?:\/\//, '')}/delivery/ws`;
+    
+    const ws = new WebSocket(wsUrl);
+    
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (data.type === 'order_updated') {
+          queryClient.invalidateQueries({ queryKey: ['availableOrders'] });
+          queryClient.invalidateQueries({ queryKey: ['myOrders'] });
+        }
+      } catch (err) {
+        console.warn('Error parsing WS message', err);
+      }
+    };
+    
+    ws.onopen = () => {
+      console.log('WS connected to delivery/ws');
+    };
+    
+    ws.onerror = (error) => {
+      console.error('WS error:', error);
+    };
+    
+    return () => {
+      ws.close();
+    };
+  }, [queryClient]);
+
 
   const { data: orders, isLoading, isError, refetch } = useQuery({
     queryKey: ['availableOrders'],
