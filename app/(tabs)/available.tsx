@@ -11,29 +11,37 @@ export default function AvailableOrders() {
     const wsProtocol = BASE_URL.startsWith('https') ? 'wss' : 'ws';
     const wsUrl = `${wsProtocol}://${BASE_URL.replace(/^https?:\/\//, '')}/delivery/ws`;
     
+    console.log('Mobile WS: Attempting connection to:', wsUrl);
     const ws = new WebSocket(wsUrl);
     
     ws.onmessage = (event) => {
+      console.log('Mobile WS: Message received:', event.data);
       try {
         const data = JSON.parse(event.data);
         if (data.type === 'order_updated') {
+          console.log('Mobile WS: Invalidating queries...');
           queryClient.invalidateQueries({ queryKey: ['availableOrders'] });
           queryClient.invalidateQueries({ queryKey: ['myOrders'] });
         }
       } catch (err) {
-        console.warn('Error parsing WS message', err);
+        console.warn('Mobile WS: Error parsing WS message', err);
       }
     };
     
     ws.onopen = () => {
-      console.log('WS connected to delivery/ws');
+      console.log('Mobile WS: Connected successfully to delivery/ws');
+    };
+    
+    ws.onclose = (event) => {
+      console.log('Mobile WS: Connection closed', event.code, event.reason);
     };
     
     ws.onerror = (error) => {
-      console.error('WS error:', error);
+      console.error('Mobile WS: Error:', error);
     };
     
     return () => {
+      console.log('Mobile WS: Cleaning up connection...');
       ws.close();
     };
   }, [queryClient]);

@@ -4,17 +4,24 @@ import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 
 const getBaseUrl = () => {
+  // 1. Usar variable de entorno si está definida (ideal para producción)
+  if (process.env.EXPO_PUBLIC_API_URL) {
+    return process.env.EXPO_PUBLIC_API_URL;
+  }
+
+  // 2. Fallbacks para desarrollo/testeo local
   if (Platform.OS === 'web') {
     return 'http://localhost:8000';
   }
 
+  // Detección automática de la IP local en modo Expo (emulador o dispositivo físico)
   const hostUri = Constants.expoConfig?.hostUri;
   if (hostUri) {
     const ip = hostUri.split(':')[0];
     return `http://${ip}:8000`;
   }
 
-  // Fallback default IP if hostUri is unavailable
+  // IP por defecto de respaldo si no hay hostUri
   return 'http://192.168.0.190:8000';
 };
 
