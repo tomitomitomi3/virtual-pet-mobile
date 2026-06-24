@@ -17,7 +17,7 @@ export default function HistoryScreen() {
     if (!history) return { delivered: 0, returned: 0 };
     return {
       delivered: history.filter((o: any) => o.estado === 'entregado').length,
-      returned: history.filter((o: any) => o.estado === 'preparado').length,
+      returned: history.filter((o: any) => o.estado === 'preparado' || o.estado === 'cancelado').length,
     };
   }, [history]);
 
