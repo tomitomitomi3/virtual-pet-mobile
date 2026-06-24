@@ -11,9 +11,16 @@
       "distribution": "internal",
       "android": {
         "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://virtualpet-backend.duckdns.org"
       }
     },
-    "production": {}
+    "production": {
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://virtualpet-backend.duckdns.org"
+      }
+    }
   },
   "submit": {
     "production": {}

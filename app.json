@@ -24,7 +24,7 @@
       "versionCode": 1,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#fafaf8"
+        "backgroundColor": "#d97519"
       }
     },
     "web": {
@@ -33,6 +33,12 @@
     "plugins": [
       "expo-router"
     ],
-    "scheme": "virtual-pet-rider"
+    "scheme": "virtual-pet-rider",
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "0cb45a93-a681-41a4-a664-0fed7cf50c20"
+      }
+    }
   }
 }
