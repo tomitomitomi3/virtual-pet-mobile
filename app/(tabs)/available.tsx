@@ -1,48 +1,73 @@
-import React, { useEffect } from 'react';
-import { View, Text, FlatList, TouchableOpacity, ActivityIndicator, Alert, RefreshControl } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, FlatList, TouchableOpacity, ActivityIndicator, RefreshControl } from 'react-native';
 import { Package, MapPin, ChevronRight } from 'lucide-react-native';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api, { BASE_URL } from '../../services/api';
+import CustomAlert, { CustomAlertButton } from '../../components/CustomAlert';
 
 export default function AvailableOrders() {
   const queryClient = useQueryClient();
 
+  const [alertConfig, setAlertConfig] = useState<{ visible: boolean; title: string; message: string; buttons?: CustomAlertButton[] }>({
+    visible: false,
+    title: '',
+    message: '',
+  });
+
+  const showAlert = (title: string, message: string, buttons?: CustomAlertButton[]) => {
+    setAlertConfig({ visible: true, title, message, buttons });
+  };
+
+  const hideAlert = () => {
+    setAlertConfig(prev => ({ ...prev, visible: false }));
+  };
+
   useEffect(() => {
-    const wsProtocol = BASE_URL.startsWith('https') ? 'wss' : 'ws';
-    const wsUrl = `${wsProtocol}://${BASE_URL.replace(/^https?:\/\//, '')}/delivery/ws`;
-    
-    console.log('Mobile WS: Attempting connection to:', wsUrl);
-    const ws = new WebSocket(wsUrl);
-    
-    ws.onmessage = (event) => {
-      console.log('Mobile WS: Message received:', event.data);
-      try {
-        const data = JSON.parse(event.data);
-        if (data.type === 'order_updated') {
-          console.log('Mobile WS: Invalidating queries...');
+    let ws: WebSocket;
+    let reconnectTimeout: NodeJS.Timeout;
+
+    const connectWS = () => {
+      const wsProtocol = BASE_URL.startsWith('https') ? 'wss' : 'ws';
+      const wsUrl = `${wsProtocol}://${BASE_URL.replace(/^https?:\/\//, '')}/delivery/ws`;
+      
+      console.log('Mobile WS: Attempting connection to:', wsUrl);
+      ws = new WebSocket(wsUrl);
+      
+      ws.onmessage = (event) => {
+        console.log('Mobile WS: Message received:', event.data);
+        try {
+          const data = JSON.parse(event.data);
+          console.log('Mobile WS: Invalidating queries...', data);
           queryClient.invalidateQueries({ queryKey: ['availableOrders'] });
           queryClient.invalidateQueries({ queryKey: ['myOrders'] });
+        } catch (err) {
+          console.warn('Mobile WS: Error parsing WS message', err);
         }
-      } catch (err) {
-        console.warn('Mobile WS: Error parsing WS message', err);
-      }
+      };
+      
+      ws.onopen = () => {
+        console.log('Mobile WS: Connected successfully to delivery/ws');
+      };
+      
+      ws.onclose = (event) => {
+        console.log('Mobile WS: Connection closed', event.code, event.reason);
+        reconnectTimeout = setTimeout(connectWS, 3000);
+      };
+      
+      ws.onerror = (error) => {
+        console.error('Mobile WS: Error:', error);
+      };
     };
-    
-    ws.onopen = () => {
-      console.log('Mobile WS: Connected successfully to delivery/ws');
-    };
-    
-    ws.onclose = (event) => {
-      console.log('Mobile WS: Connection closed', event.code, event.reason);
-    };
-    
-    ws.onerror = (error) => {
-      console.error('Mobile WS: Error:', error);
-    };
+
+    connectWS();
     
     return () => {
       console.log('Mobile WS: Cleaning up connection...');
-      ws.close();
+      clearTimeout(reconnectTimeout);
+      if (ws) {
+        ws.onclose = null;
+        ws.close();
+      }
     };
   }, [queryClient]);
 
@@ -60,17 +85,22 @@ export default function AvailableOrders() {
       await api.post(`/delivery/${orderId}/claim`);
     },
     onSuccess: () => {
-      Alert.alert('Éxito', 'Pedido tomado correctamente. Ya puedes verlo en "Mis Viajes".');
+      showAlert('Éxito', 'Pedido tomado correctamente. Ya puedes verlo en "Mis Viajes".');
       queryClient.invalidateQueries({ queryKey: ['availableOrders'] });
       queryClient.invalidateQueries({ queryKey: ['myOrders'] });
     },
     onError: (error: any) => {
-      Alert.alert('Error', error.response?.data?.detail || 'No se pudo tomar el pedido');
+      const isNetworkError = error.message === 'Network Error' || !error.response;
+      const errorMessage = isNetworkError 
+        ? 'No tienes conexión a internet. Revisa tu conexión y vuelve a intentarlo.'
+        : error.response?.data?.detail || 'No se pudo tomar el pedido';
+      
+      showAlert('Error', errorMessage);
     },
   });
 
   const handleClaim = (orderId: number) => {
-    Alert.alert('Tomar Pedido', '¿Quieres asignar este pedido a tu nombre?', [
+    showAlert('Tomar Pedido', '¿Quieres asignar este pedido a tu nombre?', [
       { text: 'Cancelar', style: 'cancel' },
       { text: 'Confirmar', onPress: () => claimMutation.mutate(orderId) },
     ]);
@@ -141,6 +171,13 @@ export default function AvailableOrders() {
 
   return (
     <View className="flex-1 bg-surface-50">
+      <CustomAlert
+        visible={alertConfig.visible}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        buttons={alertConfig.buttons}
+        onClose={hideAlert}
+      />
       <FlatList
         data={orders}
         renderItem={renderItem}

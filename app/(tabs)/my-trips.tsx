@@ -1,11 +1,26 @@
-import React from 'react';
-import { View, Text, FlatList, TouchableOpacity, Alert, ActivityIndicator, RefreshControl } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, FlatList, TouchableOpacity, ActivityIndicator, RefreshControl } from 'react-native';
 import { Truck, MapPin, CheckCircle, XCircle } from 'lucide-react-native';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../../services/api';
+import CustomAlert, { CustomAlertButton } from '../../components/CustomAlert';
 
 export default function MyTrips() {
   const queryClient = useQueryClient();
+
+  const [alertConfig, setAlertConfig] = useState<{ visible: boolean; title: string; message: string; buttons?: CustomAlertButton[] }>({
+    visible: false,
+    title: '',
+    message: '',
+  });
+
+  const showAlert = (title: string, message: string, buttons?: CustomAlertButton[]) => {
+    setAlertConfig({ visible: true, title, message, buttons });
+  };
+
+  const hideAlert = () => {
+    setAlertConfig(prev => ({ ...prev, visible: false }));
+  };
 
   const { data: myOrders, isLoading, isError, refetch } = useQuery({
     queryKey: ['myOrders'],
@@ -20,9 +35,16 @@ export default function MyTrips() {
       await api.post(`/delivery/${orderId}/complete`);
     },
     onSuccess: () => {
-      Alert.alert('Éxito', 'Entrega confirmada. ¡Buen trabajo!');
+      showAlert('Éxito', 'Entrega confirmada. ¡Buen trabajo!');
       queryClient.invalidateQueries({ queryKey: ['myOrders'] });
       queryClient.invalidateQueries({ queryKey: ['historyOrders'] });
+    },
+    onError: (error: any) => {
+      const isNetworkError = error.message === 'Network Error' || !error.response;
+      const errorMessage = isNetworkError 
+        ? 'No tienes conexión a internet. Revisa tu conexión y vuelve a intentarlo.'
+        : error.response?.data?.detail || 'No se pudo confirmar la entrega';
+      showAlert('Error', errorMessage);
     },
   });
 
@@ -31,21 +53,28 @@ export default function MyTrips() {
       await api.post(`/delivery/${orderId}/return`);
     },
     onSuccess: () => {
-      Alert.alert('Devuelto', 'El pedido ha sido regresado al depósito.');
+      showAlert('Devuelto', 'El pedido ha sido regresado al depósito.');
       queryClient.invalidateQueries({ queryKey: ['myOrders'] });
       queryClient.invalidateQueries({ queryKey: ['availableOrders'] });
+    },
+    onError: (error: any) => {
+      const isNetworkError = error.message === 'Network Error' || !error.response;
+      const errorMessage = isNetworkError 
+        ? 'No tienes conexión a internet. Revisa tu conexión y vuelve a intentarlo.'
+        : error.response?.data?.detail || 'No se pudo devolver el pedido';
+      showAlert('Error', errorMessage);
     },
   });
 
   const handleComplete = (id: number) => {
-    Alert.alert('Entregar Pedido', `¿Confirmas que el pedido #${id} fue entregado?`, [
+    showAlert('Entregar Pedido', `¿Confirmas que el pedido #${id} fue entregado?`, [
       { text: 'Cancelar', style: 'cancel' },
       { text: 'Confirmar', onPress: () => completeMutation.mutate(id) }
     ]);
   };
 
   const handleReturn = (id: number) => {
-    Alert.alert('Devolver al Depósito', `¿El pedido #${id} no pudo ser entregado?`, [
+    showAlert('Devolver al Depósito', `¿El pedido #${id} no pudo ser entregado?`, [
       { text: 'Cancelar', style: 'cancel' },
       { text: 'Devolver', style: 'destructive', onPress: () => returnMutation.mutate(id) }
     ]);
@@ -123,6 +152,13 @@ export default function MyTrips() {
 
   return (
     <View className="flex-1 bg-surface-50">
+      <CustomAlert
+        visible={alertConfig.visible}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        buttons={alertConfig.buttons}
+        onClose={hideAlert}
+      />
       <FlatList
         data={myOrders}
         renderItem={renderItem}
