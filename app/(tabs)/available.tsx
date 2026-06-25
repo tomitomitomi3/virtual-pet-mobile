@@ -51,6 +51,7 @@ export default function AvailableOrders() {
             console.log('Mobile WS: Invalidating queries...', data);
             queryClient.invalidateQueries({ queryKey: ['availableOrders'] });
             queryClient.invalidateQueries({ queryKey: ['myOrders'] });
+            queryClient.invalidateQueries({ queryKey: ['historyOrders'] });
           }
         } catch (err) {
           // Ignorar respuestas de ping/pong u otros formatos no JSON
@@ -100,6 +101,7 @@ export default function AvailableOrders() {
       showAlert('Éxito', 'Pedido tomado correctamente. Ya puedes verlo en "Mis Viajes".');
       queryClient.invalidateQueries({ queryKey: ['availableOrders'] });
       queryClient.invalidateQueries({ queryKey: ['myOrders'] });
+      queryClient.invalidateQueries({ queryKey: ['historyOrders'] });
     },
     onError: (error: any) => {
       const isNetworkError = error.message === 'Network Error' || !error.response;

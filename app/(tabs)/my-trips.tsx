@@ -56,6 +56,7 @@ export default function MyTrips() {
       showAlert('Devuelto', 'El pedido ha sido regresado al depósito.');
       queryClient.invalidateQueries({ queryKey: ['myOrders'] });
       queryClient.invalidateQueries({ queryKey: ['availableOrders'] });
+      queryClient.invalidateQueries({ queryKey: ['historyOrders'] });
     },
     onError: (error: any) => {
       const isNetworkError = error.message === 'Network Error' || !error.response;
