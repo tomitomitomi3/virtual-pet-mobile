@@ -3,8 +3,10 @@ import { View, Text, FlatList, ActivityIndicator, RefreshControl, TouchableOpaci
 import { CheckCircle2, RotateCcw, MapPin } from 'lucide-react-native';
 import { useQuery } from '@tanstack/react-query';
 import api from '../../services/api';
+import { useAuthStore } from '../../store/authStore';
 
 export default function HistoryScreen() {
+  const { user } = useAuthStore();
   const { data: history, isLoading, isError, refetch } = useQuery({
     queryKey: ['historyOrders'],
     queryFn: async () => {
@@ -15,47 +17,51 @@ export default function HistoryScreen() {
 
   const stats = React.useMemo(() => {
     if (!history) return { delivered: 0, returned: 0 };
+    const myId = user?.id;
     return {
-      delivered: history.filter((o: any) => o.estado === 'entregado').length,
-      returned: history.filter((o: any) => o.estado !== 'entregado').length,
+      delivered: history.filter((o: any) => o.estado === 'entregado' && o.rider_id === myId).length,
+      returned: history.filter((o: any) => o.estado !== 'entregado' || o.rider_id !== myId).length,
     };
-  }, [history]);
+  }, [history, user]);
 
-  const renderItem = ({ item }: { item: any }) => (
-    <View className="bg-white mx-4 mb-4 p-5 rounded-[32px] shadow-sm border border-surface-100">
-      <View className="flex-row justify-between items-center mb-4">
-        <View className="flex-row items-center gap-2">
-          <View className={item.estado === 'entregado' ? 'bg-green-100 p-2 rounded-xl' : 'bg-gray-100 p-2 rounded-xl'}>
-            {item.estado === 'entregado' ? (
-              <CheckCircle2 color="#16a34a" size={20} />
-            ) : (
-              <RotateCcw color="#4b5563" size={20} />
-            )}
+  const renderItem = ({ item }: { item: any }) => {
+    const isDeliveredByMe = item.estado === 'entregado' && item.rider_id === user?.id;
+    return (
+      <View className="bg-white mx-4 mb-4 p-5 rounded-[32px] shadow-sm border border-surface-100">
+        <View className="flex-row justify-between items-center mb-4">
+          <View className="flex-row items-center gap-2">
+            <View className={isDeliveredByMe ? 'bg-green-100 p-2 rounded-xl' : 'bg-gray-100 p-2 rounded-xl'}>
+              {isDeliveredByMe ? (
+                <CheckCircle2 color="#16a34a" size={20} />
+              ) : (
+                <RotateCcw color="#4b5563" size={20} />
+              )}
+            </View>
+            <Text className="text-gray-900 font-bold text-sm">Pedido #{item.id}</Text>
           </View>
-          <Text className="text-gray-900 font-bold text-sm">Pedido #{item.id}</Text>
+          <Text className="text-gray-400 text-xs font-medium">
+            {new Date(item.updated_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+          </Text>
         </View>
-        <Text className="text-gray-400 text-xs font-medium">
-          {new Date(item.updated_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-        </Text>
-      </View>
 
-      <View className="flex-row items-center gap-2 mb-2">
-        <MapPin color="#9e4412" size={14} />
-        <Text className="text-gray-600 text-sm flex-1" numberOfLines={1}>
-          {item.direccion_entrega}
-        </Text>
-      </View>
+        <View className="flex-row items-center gap-2 mb-2">
+          <MapPin color="#9e4412" size={14} />
+          <Text className="text-gray-600 text-sm flex-1" numberOfLines={1}>
+            {item.direccion_entrega}
+          </Text>
+        </View>
 
-      <View className="flex-row justify-between items-end mt-2">
-        <Text className="text-gray-400 text-xs italic">
-          {item.estado === 'entregado' ? 'Entregado con éxito' : 'Devuelto al depósito'}
-        </Text>
-        <Text className="text-gray-900 font-bold text-lg">
-          ${item.total}
-        </Text>
+        <View className="flex-row justify-between items-end mt-2">
+          <Text className="text-gray-400 text-xs italic">
+            {isDeliveredByMe ? 'Entregado con éxito' : 'Devuelto al depósito'}
+          </Text>
+          <Text className="text-gray-900 font-bold text-lg">
+            ${item.total}
+          </Text>
+        </View>
       </View>
-    </View>
-  );
+    );
+  };
 
   if (isLoading) {
     return (
