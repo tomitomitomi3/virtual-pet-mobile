@@ -23,8 +23,9 @@ export default function AvailableOrders() {
   };
 
   useEffect(() => {
-    let ws: WebSocket;
-    let reconnectTimeout: NodeJS.Timeout;
+    let ws: WebSocket | null = null;
+    let reconnectTimeout: any = null;
+    let pingInterval: any = null;
 
     const connectWS = () => {
       const wsProtocol = BASE_URL.startsWith('https') ? 'wss' : 'ws';
@@ -33,24 +34,33 @@ export default function AvailableOrders() {
       console.log('Mobile WS: Attempting connection to:', wsUrl);
       ws = new WebSocket(wsUrl);
       
-      ws.onmessage = (event) => {
-        console.log('Mobile WS: Message received:', event.data);
-        try {
-          const data = JSON.parse(event.data);
-          console.log('Mobile WS: Invalidating queries...', data);
-          queryClient.invalidateQueries({ queryKey: ['availableOrders'] });
-          queryClient.invalidateQueries({ queryKey: ['myOrders'] });
-        } catch (err) {
-          console.warn('Mobile WS: Error parsing WS message', err);
-        }
-      };
-      
       ws.onopen = () => {
         console.log('Mobile WS: Connected successfully to delivery/ws');
+        // Enviar un ping cada 30 segundos para mantener la conexión activa en Nginx/proxies
+        pingInterval = setInterval(() => {
+          if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({ type: 'ping' }));
+          }
+        }, 30000);
+      };
+
+      ws.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          if (data.type === 'order_updated') {
+            console.log('Mobile WS: Invalidating queries...', data);
+            queryClient.invalidateQueries({ queryKey: ['availableOrders'] });
+            queryClient.invalidateQueries({ queryKey: ['myOrders'] });
+          }
+        } catch (err) {
+          // Ignorar respuestas de ping/pong u otros formatos no JSON
+        }
       };
       
       ws.onclose = (event) => {
         console.log('Mobile WS: Connection closed', event.code, event.reason);
+        clearInterval(pingInterval);
+        console.log('Mobile WS: Attempting reconnection in 3 seconds...');
         reconnectTimeout = setTimeout(connectWS, 3000);
       };
       
@@ -63,8 +73,10 @@ export default function AvailableOrders() {
     
     return () => {
       console.log('Mobile WS: Cleaning up connection...');
+      clearInterval(pingInterval);
       clearTimeout(reconnectTimeout);
       if (ws) {
+        // Desactivar el callback onclose antes de cerrar para evitar la reconexión en el desmontaje
         ws.onclose = null;
         ws.close();
       }
