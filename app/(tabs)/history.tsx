@@ -16,11 +16,10 @@ export default function HistoryScreen() {
   });
 
   const stats = React.useMemo(() => {
-    if (!history) return { delivered: 0, returned: 0 };
+    if (!history) return { delivered: 0 };
     const myId = user?.id;
     return {
       delivered: history.filter((o: any) => o.estado === 'entregado' && o.rider_id === myId).length,
-      returned: history.filter((o: any) => o.estado !== 'entregado' || o.rider_id !== myId).length,
     };
   }, [history, user]);
 
@@ -91,14 +90,10 @@ export default function HistoryScreen() {
 
   return (
     <View className="flex-1 bg-surface-50">
-      <View className="flex-row gap-3 p-4">
-        <View className="flex-1 bg-white p-4 rounded-3xl border border-surface-100 items-center">
-          <Text className="text-gray-400 text-xs font-bold uppercase mb-1">Entregados</Text>
-          <Text className="text-green-600 text-2xl font-bold">{stats.delivered}</Text>
-        </View>
-        <View className="flex-1 bg-white p-4 rounded-3xl border border-surface-100 items-center">
-          <Text className="text-gray-400 text-xs font-bold uppercase mb-1">Devueltos</Text>
-          <Text className="text-gray-600 text-2xl font-bold">{stats.returned}</Text>
+      <View className="p-4">
+        <View className="bg-white p-5 rounded-[32px] border border-surface-100 items-center shadow-sm">
+          <Text className="text-gray-400 text-xs font-bold uppercase tracking-wider mb-1">Pedidos Entregados</Text>
+          <Text className="text-green-600 text-3xl font-extrabold">{stats.delivered}</Text>
         </View>
       </View>
 
