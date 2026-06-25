@@ -92,8 +92,8 @@ export default function HistoryScreen() {
     <View className="flex-1 bg-surface-50">
       <View className="p-4">
         <View className="bg-white p-5 rounded-[32px] border border-surface-100 items-center shadow-sm">
-          <Text className="text-gray-400 text-xs font-bold uppercase tracking-wider mb-1">Pedidos Entregados</Text>
-          <Text className="text-green-600 text-3xl font-extrabold">{stats.delivered}</Text>
+          <Text className="text-gray-400 text-xs font-bold uppercase tracking-wider mb-1 text-center w-full">Pedidos Entregados</Text>
+          <Text className="text-green-600 text-3xl font-extrabold text-center w-full">{stats.delivered}</Text>
         </View>
       </View>
 
